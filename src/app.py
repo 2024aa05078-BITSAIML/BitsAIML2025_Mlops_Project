@@ -2,47 +2,42 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import joblib
 import pandas as pd
-import numpy as np
+import time
 import logging
 import os
-import time
 
-# ---------------- Create required directories ----------------
+# ================== Logging Setup ==================
 os.makedirs("logs", exist_ok=True)
 
-# ---------------- Logging Configuration ----------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
     handlers=[
-        logging.FileHandler("logs/api.log"),
-        logging.StreamHandler()
+        logging.StreamHandler(),                  # Docker logs
+        logging.FileHandler("logs/api.log")       # File logs
     ]
 )
 
 logger = logging.getLogger(__name__)
-# -------------------------------------------------------
+# ===================================================
 
-# ---------------- Load Trained Model -------------------
-MODEL_PATH = "models/heart_disease_model.pkl"
+# ================== Monitoring Counters ==================
+REQUEST_COUNT = 0
+TOTAL_PREDICTION_TIME = 0.0
+# =========================================================
 
+# ================== Load Model ==================
 try:
-    model = joblib.load(MODEL_PATH)
+    model = joblib.load("models/heart_disease_model.pkl")
     logger.info("Model loaded successfully")
 except Exception as e:
-    logger.error(f"Failed to load model: {e}")
+    logger.error("Failed to load model", exc_info=True)
     raise e
-# -------------------------------------------------------
+# =================================================
 
-# ---------------- FastAPI App --------------------------
-app = FastAPI(
-    title="Heart Disease Prediction API",
-    description="MLOps Task-8: Model Inference Service",
-    version="1.0"
-)
-# -------------------------------------------------------
+app = FastAPI(title="Heart Disease Prediction API")
 
-# ---------------- Input Schema -------------------------
+# ================== Input Schema ==================
 class PatientData(BaseModel):
     age: int
     sex: int
@@ -57,32 +52,21 @@ class PatientData(BaseModel):
     slope: int
     ca: int
     thal: int
-# -------------------------------------------------------
+# ==================================================
 
-FEATURE_NAMES = [
-    "age", "sex", "cp", "trestbps", "chol", "fbs",
-    "restecg", "thalach", "exang", "oldpeak",
-    "slope", "ca", "thal"
-]
-
-# ---------------- Health Check -------------------------
 @app.get("/")
 def home():
     logger.info("Health check endpoint accessed")
     return {"message": "Heart Disease Prediction API is running"}
-# -------------------------------------------------------
 
-# ---------------- Prediction Endpoint ------------------
 @app.post("/predict")
 def predict(data: PatientData):
     global REQUEST_COUNT, TOTAL_PREDICTION_TIME
 
-    start_time = time.time()
-    REQUEST_COUNT += 1
-
     try:
-        logger.info(f"Request #{REQUEST_COUNT}: {data.dict()}")
+        start_time = time.time()
 
+        # Convert input to DataFrame (IMPORTANT for ColumnTransformer)
         input_df = pd.DataFrame([data.dict()])
 
         prediction = int(model.predict(input_df)[0])
@@ -91,11 +75,16 @@ def predict(data: PatientData):
         if hasattr(model, "predict_proba"):
             probability = float(model.predict_proba(input_df)[0][1])
 
-        duration = time.time() - start_time
-        TOTAL_PREDICTION_TIME += duration
+        elapsed_time = time.time() - start_time
+
+        REQUEST_COUNT += 1
+        TOTAL_PREDICTION_TIME += elapsed_time
 
         logger.info(
-            f"Prediction={prediction}, Probability={probability}, Time={duration:.4f}s"
+            f"Request #{REQUEST_COUNT} | "
+            f"Time={elapsed_time:.4f}s | "
+            f"Prediction={prediction} | "
+            f"Probability={probability}"
         )
 
         return {
@@ -106,5 +95,3 @@ def predict(data: PatientData):
     except Exception as e:
         logger.error("Prediction failed", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
-# -------------------------------------------------------
