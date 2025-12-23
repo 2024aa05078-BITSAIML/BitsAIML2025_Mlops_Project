@@ -32,3 +32,5 @@ prometheus-client
 
 # Optional (used in some environments)
 python-dotenv
+
+prometheus-fastapi-instrumentator

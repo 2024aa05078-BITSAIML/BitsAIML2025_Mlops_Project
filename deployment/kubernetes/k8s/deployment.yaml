@@ -13,8 +13,8 @@ spec:
         app: heart-disease
     spec:
       containers:
-        - name: heart-disease-container
-          image: heart-disease-api:latest
-          imagePullPolicy: Never
-          ports:
-            - containerPort: 8000
+      - name: heart-disease-container
+        image: heart-disease-api:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
