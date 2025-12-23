@@ -13,8 +13,8 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
     handlers=[
-        logging.StreamHandler(),                  # Docker logs
-        logging.FileHandler("logs/api.log")       # File logs
+        logging.StreamHandler(),
+        logging.FileHandler("logs/api.log")
     ]
 )
 
@@ -56,7 +56,6 @@ class PatientData(BaseModel):
 
 @app.get("/")
 def home():
-    logger.info("Health check endpoint accessed")
     return {"message": "Heart Disease Prediction API is running"}
 
 @app.post("/predict")
@@ -66,14 +65,12 @@ def predict(data: PatientData):
     try:
         start_time = time.time()
 
-        # Convert input to DataFrame (IMPORTANT for ColumnTransformer)
         input_df = pd.DataFrame([data.dict()])
-
         prediction = int(model.predict(input_df)[0])
 
-        probability = None
+        confidence = None
         if hasattr(model, "predict_proba"):
-            probability = float(model.predict_proba(input_df)[0][1])
+            confidence = float(model.predict_proba(input_df)[0][1])
 
         elapsed_time = time.time() - start_time
 
@@ -84,14 +81,15 @@ def predict(data: PatientData):
             f"Request #{REQUEST_COUNT} | "
             f"Time={elapsed_time:.4f}s | "
             f"Prediction={prediction} | "
-            f"Probability={probability}"
+            f"Confidence={confidence}"
         )
 
+        # ✅ TEST EXPECTS "confidence"
         return {
             "prediction": prediction,
-            "probability": probability
+            "confidence": confidence
         }
 
-    except Exception as e:
+    except Exception:
         logger.error("Prediction failed", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal Server Error")
