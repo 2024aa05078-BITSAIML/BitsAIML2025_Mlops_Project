@@ -270,3 +270,84 @@ This project demonstrates a complete ML lifecycle:
 * Production-ready API
 * Containerization and Kubernetes deployment
 * Logging and monitoring
+
+
+### Heart Disease Prediction Pipeline
+
+This repository implements an end-to-end Machine Learning & MLOps pipeline for predicting heart disease using the UCI Heart Disease (Cleveland) dataset.
+It covers data acquisition, preprocessing, model training, evaluation, API deployment, containerization, Kubernetes deployment, and monitoring.
+
+Quick Steps – Project Execution Guide
+
+This section provides simple, end-to-end steps to run the project quickly on a local machine.
+
+Prerequisites
+
+Python 3.8+
+
+Git
+
+Docker & Docker Desktop
+
+kubectl (for Kubernetes deployment)
+
+Minimum 3 GB free disk space
+
+Step 1: Clone the Repository
+git clone <REPO_URL>
+cd BitsAIML2025_Mlops_Project
+
+Step 2: Create & Activate Virtual Environment
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# Linux / Mac
+source venv/bin/activate
+
+Step 3: Install Dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+
+Step 4: Download Dataset
+python data/download_scripts/download_ucidata.py
+
+Step 5: Preprocess Data
+python src/preprocess.py
+
+Step 6: Train Final Model
+python src/train_final_model.py
+
+Step 7: Run Tests
+python src/test_data_loading.py
+python src/test_model.py
+
+Step 8: Build & Run Docker Image
+docker build -t heart-disease-api -f docker/Dockerfile .
+docker run -p 8000:8000 heart-disease-api
+
+Step 9: Test API
+curl http://localhost:8000/
+
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "age": 52,
+    "sex": 1,
+    "cp": 0,
+    "trestbps": 125,
+    "chol": 212,
+    "fbs": 0,
+    "restecg": 1,
+    "thalach": 168,
+    "exang": 0,
+    "oldpeak": 1.0,
+    "slope": 2,
+    "ca": 0,
+    "thal": 2
+  }'
+
+Step 10: Kubernetes Deployment
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
